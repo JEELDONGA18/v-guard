@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 const menuItems = [
   {
     name: 'Dashboard',
-    path: '/',
+    path: '/dashboard',
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zm-10 9a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zm10-2a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1h-4a1 1 0 01-1-1v-5z" />
@@ -75,7 +75,7 @@ export default function Sidebar({ collapsed, onToggle }) {
           <NavLink
             key={item.path}
             to={item.path}
-            end={item.path === '/'}
+            end={item.path === '/dashboard'}
             className={({ isActive }) =>
               `flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 group relative ${
                 isActive

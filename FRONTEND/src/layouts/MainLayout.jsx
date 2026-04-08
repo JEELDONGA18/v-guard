@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar'
 import { useVehicleData } from '../hooks/useVehicleData'
 
 const pageTitles = {
-  '/': 'Dashboard',
+  '/dashboard': 'Dashboard',
   '/tracking': 'Live Tracking',
   '/alerts': 'Alerts',
   '/logs': 'System Logs',

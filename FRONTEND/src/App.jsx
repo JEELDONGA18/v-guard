@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import MainLayout from './layouts/MainLayout'
+import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import LiveTracking from './pages/LiveTracking'
 import Alerts from './pages/Alerts'
@@ -10,8 +11,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Landing Page */}
+        <Route path="/" element={<Landing />} />
+
+        {/* Dashboard Routes */}
         <Route element={<MainLayout />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tracking" element={<LiveTracking />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/logs" element={<Logs />} />

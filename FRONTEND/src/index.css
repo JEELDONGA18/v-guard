@@ -165,3 +165,61 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ===== Smooth Scroll ===== */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ===== Landing Page Overrides ===== */
+.landing-page {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Override body overflow for landing page */
+body:has(.landing-page) {
+  overflow: auto;
+}
+
+body:has(.landing-page) #root {
+  height: auto;
+  min-height: 100vh;
+}
+
+/* ===== Landing Page Glass Card ===== */
+.glass-card-landing {
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(51, 65, 85, 0.4);
+  border-radius: 20px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-landing:hover {
+  border-color: rgba(59, 130, 246, 0.25);
+  background: rgba(30, 41, 59, 0.65);
+}
+
+/* ===== Hero Animated Gradient ===== */
+.hero-gradient {
+  background: linear-gradient(
+    135deg,
+    #0F172A 0%,
+    #0F1D3A 25%,
+    #0F172A 50%,
+    #0B1A30 75%,
+    #0F172A 100%
+  );
+  background-size: 400% 400%;
+  animation: heroGradientShift 15s ease infinite;
+}
+
+@keyframes heroGradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  25% { background-position: 100% 0%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+}
+
