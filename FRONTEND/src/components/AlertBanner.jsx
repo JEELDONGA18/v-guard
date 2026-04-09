@@ -8,37 +8,35 @@
 export default function AlertBanner({ alerts = [], maxItems = 5 }) {
   const recentAlerts = alerts.slice(0, maxItems)
 
-  const getAlertStyle = (type) => {
-    switch (type?.toLowerCase()) {
-      case 'danger':
-      case 'theft':
+  const getAlertStyle = (eventCode) => {
+    switch (eventCode) {
+      case 'THEFT_DETECTED':
         return {
           bg: 'bg-red-500/10',
           border: 'border-red-500/20',
           text: 'text-red-400',
           icon: '🚨',
         }
-      case 'warning':
-      case 'geofence':
+      case 'SPEED_EXCEEDED':
         return {
           bg: 'bg-yellow-500/10',
           border: 'border-yellow-500/20',
           text: 'text-yellow-400',
           icon: '⚠️',
         }
-      case 'success':
+      case 'GPS_SIGNAL_LOST':
         return {
-          bg: 'bg-green-500/10',
-          border: 'border-green-500/20',
-          text: 'text-green-400',
-          icon: '✅',
+          bg: 'bg-orange-500/10',
+          border: 'border-orange-500/20',
+          text: 'text-orange-400',
+          icon: '📡',
         }
       default:
         return {
           bg: 'bg-blue-500/10',
           border: 'border-blue-500/20',
           text: 'text-blue-400',
-          icon: 'ℹ️',
+          icon: '🔔',
         }
     }
   }
@@ -76,7 +74,7 @@ export default function AlertBanner({ alerts = [], maxItems = 5 }) {
       ) : (
         <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
           {recentAlerts.map((alert, index) => {
-            const style = getAlertStyle(alert.type)
+            const style = getAlertStyle(alert.eventCode)
             return (
               <div
                 key={alert._id || index}

@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 
 const menuItems = [
   {
@@ -51,6 +51,13 @@ const menuItems = [
 ]
 
 export default function Sidebar({ collapsed, onToggle }) {
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    localStorage.removeItem('userId')
+    navigate('/login')
+  }
+
   return (
     <aside
       className={`${
@@ -101,8 +108,34 @@ export default function Sidebar({ collapsed, onToggle }) {
         ))}
       </nav>
 
-      {/* Collapse Toggle */}
-      <div className="p-3 border-t border-vg-border/50">
+      {/* Bottom Actions */}
+      <div className="p-3 border-t border-vg-border/50 space-y-1">
+        {/* Logout */}
+        <button
+          id="btn-logout"
+          onClick={handleLogout}
+          className="w-full flex items-center px-3 py-2.5 rounded-xl text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
+          title="Logout"
+        >
+          <svg
+            className="w-5 h-5 flex-shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.8}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+            />
+          </svg>
+          {!collapsed && (
+            <span className="ml-3 text-sm font-medium">Logout</span>
+          )}
+        </button>
+
+        {/* Collapse Toggle */}
         <button
           id="sidebar-toggle"
           onClick={onToggle}
@@ -132,3 +165,4 @@ export default function Sidebar({ collapsed, onToggle }) {
     </aside>
   )
 }
+

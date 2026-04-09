@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getLogs } from '../services/api'
+import { POLL_INTERVAL_MS } from '../config'
 
 export default function Alerts() {
   const [alerts, setAlerts] = useState([])
@@ -9,14 +10,9 @@ export default function Alerts() {
   const fetchAlerts = async () => {
     try {
       const logsData = await getLogs()
-      // Filter to alert/warning/danger types only
+      // Filter to alert-type logs only
       const alertLogs = (logsData || []).filter(
-        (log) =>
-          log.type === 'alert' ||
-          log.type === 'danger' ||
-          log.type === 'warning' ||
-          log.type === 'theft' ||
-          log.type === 'geofence'
+        (log) => log.type === 'alert'
       )
       setAlerts(alertLogs)
       setError(null)
@@ -29,14 +25,13 @@ export default function Alerts() {
 
   useEffect(() => {
     fetchAlerts()
-    const interval = setInterval(fetchAlerts, 5000)
+    const interval = setInterval(fetchAlerts, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [])
 
-  const getAlertConfig = (type) => {
-    switch (type?.toLowerCase()) {
-      case 'danger':
-      case 'theft':
+  const getAlertConfig = (eventCode) => {
+    switch (eventCode) {
+      case 'THEFT_DETECTED':
         return {
           bg: 'bg-red-500/10',
           border: 'border-red-500/20',
@@ -45,8 +40,7 @@ export default function Alerts() {
           icon: '🚨',
           label: 'CRITICAL',
         }
-      case 'warning':
-      case 'geofence':
+      case 'SPEED_EXCEEDED':
         return {
           bg: 'bg-yellow-500/10',
           border: 'border-yellow-500/20',
@@ -150,7 +144,7 @@ export default function Alerts() {
       ) : (
         <div className="space-y-3">
           {alerts.map((alert, index) => {
-            const config = getAlertConfig(alert.type)
+            const config = getAlertConfig(alert.eventCode)
             return (
               <div
                 key={alert._id || index}
@@ -166,6 +160,11 @@ export default function Alerts() {
                       >
                         {config.label}
                       </span>
+                      {alert.eventCode && (
+                        <span className="text-[10px] font-mono text-vg-text-muted bg-white/5 px-1.5 py-0.5 rounded">
+                          {alert.eventCode}
+                        </span>
+                      )}
                       <span className="text-xs text-vg-text-muted">
                         {formatTimestamp(alert.timestamp)}
                       </span>

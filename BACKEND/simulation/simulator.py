@@ -6,8 +6,9 @@ The simulated vehicle:
 - Starts in Ahmedabad, India (23.0225, 72.5714)
 - Moves in a semi-random path with smooth directional changes
 - Varies speed realistically (0–80 km/h)
-- Stores data to MongoDB every 2 seconds
-- Occasionally generates alert-type log entries for demo purposes
+- Stores data to MongoDB every TICK_INTERVAL_SECONDS seconds
+- Generates alert-type log entries with proper eventCodes
+- Performs theft detection (movement while locked)
 """
 
 import threading
@@ -16,7 +17,20 @@ import math
 import random
 from datetime import datetime, timezone
 
-from database.connection import vehicle_data_collection, logs_collection
+from database.connection import (
+    vehicle_data_collection,
+    vehicle_status_collection,
+    logs_collection,
+    trim_vehicle_data,
+)
+
+# ——— Constants ———
+USER_ID = "vguardUser"
+THEFT_SPEED_THRESHOLD = 5.0  # km/h
+
+# ——— ⚙️ Global tick interval — change this one value to control all speeds ———
+# Examples: 2 = every 2s (fast/dev), 15 = every 15s, 30 = every 30s (slow/demo)
+TICK_INTERVAL_SECONDS = 10
 
 
 class VehicleSimulator:
@@ -39,11 +53,16 @@ class VehicleSimulator:
         print("[SIMULATOR] Vehicle simulation started.")
 
         # Log the start event
-        logs_collection.insert_one({
-            "message": "GPS simulation started — generating virtual vehicle movement",
-            "type": "info",
-            "timestamp": datetime.now(timezone.utc),
-        })
+        try:
+            logs_collection.insert_one({
+                "userId": USER_ID,
+                "eventCode": "SIMULATION_STARTED",
+                "message": "GPS simulation started — generating virtual vehicle movement",
+                "type": "info",
+                "timestamp": datetime.now(timezone.utc),
+            })
+        except Exception as e:
+            print(f"[SIMULATOR] Error logging start event: {e}")
 
     def stop(self):
         """Stop the simulation."""
@@ -58,13 +77,14 @@ class VehicleSimulator:
         while self.running:
             self._update_position()
             self._store_data()
+            self._check_theft()
 
-            # Every ~30 ticks (~60 seconds), generate a random alert for demo
+            # Every ~10 ticks (~5 minutes), generate a random event for demo
             tick += 1
-            if tick % 30 == 0:
-                self._generate_random_alert()
+            if tick % 10 == 0:
+                self._generate_random_event()
 
-            time.sleep(2)
+            time.sleep(TICK_INTERVAL_SECONDS)
 
     def _update_position(self):
         """Update vehicle heading, speed, and position with realistic variation."""
@@ -95,36 +115,90 @@ class VehicleSimulator:
         self.longitude = max(72.50, min(72.65, self.longitude))
 
     def _store_data(self):
-        """Write the current position to MongoDB."""
+        """Write the current position to MongoDB and trim old entries."""
         try:
             vehicle_data_collection.insert_one({
+                "userId": USER_ID,
                 "latitude": round(self.latitude, 6),
                 "longitude": round(self.longitude, 6),
                 "speed": round(self.speed, 1),
                 "timestamp": datetime.now(timezone.utc),
             })
+            # Periodically trim to prevent DB overload
+            trim_vehicle_data(USER_ID)
         except Exception as e:
             print(f"[SIMULATOR] Error storing data: {e}")
 
-    def _generate_random_alert(self):
-        """Create a random alert for demonstration purposes."""
-        alerts = [
-            {"message": "Unusual movement detected — possible unauthorized access", "type": "warning"},
-            {"message": "Vehicle exceeded speed limit of 60 km/h", "type": "alert"},
-            {"message": "Geofence boundary approached — 200m from limit", "type": "geofence"},
-            {"message": "Vibration sensor triggered while engine is off", "type": "danger"},
-            {"message": "GPS signal temporarily lost and recovered", "type": "warning"},
-            {"message": "System health check completed — all sensors operational", "type": "success"},
+    def _check_theft(self):
+        """
+        Theft detection: if vehicle is LOCKED and speed exceeds threshold,
+        generate a THEFT_DETECTED alert and kill the engine.
+        """
+        if self.speed <= THEFT_SPEED_THRESHOLD:
+            return
+
+        try:
+            status = vehicle_status_collection.find_one(
+                {"userId": USER_ID},
+                projection={"_id": 0, "lock": 1}
+            )
+            if status and status.get("lock") == "LOCKED":
+                now = datetime.now(timezone.utc)
+
+                logs_collection.insert_one({
+                    "userId": USER_ID,
+                    "eventCode": "THEFT_DETECTED",
+                    "message": f"Unauthorized movement detected — speed {self.speed:.1f} km/h while vehicle is LOCKED",
+                    "type": "alert",
+                    "timestamp": now,
+                })
+
+                vehicle_status_collection.update_one(
+                    {"userId": USER_ID},
+                    {"$set": {
+                        "engine": "OFF",
+                        "lastUpdated": now,
+                    }},
+                )
+                print(f"[THEFT] Alert triggered — speed {self.speed:.1f} km/h while LOCKED")
+        except Exception as e:
+            print(f"[SIMULATOR] Error checking theft: {e}")
+
+    def _generate_random_event(self):
+        """Create a random event log for demonstration purposes."""
+        events = [
+            {
+                "eventCode": "VEHICLE_MOVED",
+                "message": "Vehicle detected in motion — position updating",
+                "type": "info",
+            },
+            {
+                "eventCode": "SPEED_EXCEEDED",
+                "message": "Vehicle exceeded speed limit of 60 km/h",
+                "type": "alert",
+            },
+            {
+                "eventCode": "SYSTEM_HEALTH_OK",
+                "message": "System health check completed — all sensors operational",
+                "type": "info",
+            },
+            {
+                "eventCode": "GPS_SIGNAL_LOST",
+                "message": "GPS signal temporarily lost and recovered",
+                "type": "alert",
+            },
         ]
-        chosen = random.choice(alerts)
+        chosen = random.choice(events)
         try:
             logs_collection.insert_one({
+                "userId": USER_ID,
+                "eventCode": chosen["eventCode"],
                 "message": chosen["message"],
                 "type": chosen["type"],
                 "timestamp": datetime.now(timezone.utc),
             })
         except Exception as e:
-            print(f"[SIMULATOR] Error creating alert: {e}")
+            print(f"[SIMULATOR] Error creating event log: {e}")
 
 
 # Singleton instance

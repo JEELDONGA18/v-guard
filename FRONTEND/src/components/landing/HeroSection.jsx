@@ -123,7 +123,7 @@ export default function HeroSection() {
           >
             <motion.button
               id="cta-get-started"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/login')}
               className="group relative px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl shadow-xl shadow-blue-500/25 overflow-hidden transition-shadow duration-300 hover:shadow-blue-500/40"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}

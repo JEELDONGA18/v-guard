@@ -5,15 +5,15 @@ import { sendControl } from '../services/api'
  * ControlPanel — Lock/Unlock buttons and engine status indicator.
  *
  * @param {Object} props
- * @param {Object} props.vehicleStatus - { lockState: "LOCKED"|"UNLOCKED", engineState: "ON"|"OFF" }
+ * @param {Object} props.vehicleStatus - { lock: "LOCKED"|"UNLOCKED", engine: "ON"|"OFF" }
  * @param {Function} props.onStatusChange - Callback after a control command succeeds
  */
 export default function ControlPanel({ vehicleStatus, onStatusChange }) {
   const [loading, setLoading] = useState(null) // 'LOCK' | 'UNLOCK' | null
   const [error, setError] = useState(null)
 
-  const isLocked = vehicleStatus?.lockState === 'LOCKED'
-  const engineOn = vehicleStatus?.engineState === 'ON'
+  const isLocked = vehicleStatus?.lock === 'LOCKED'
+  const engineOn = vehicleStatus?.engine === 'ON'
 
   const handleControl = async (action) => {
     setLoading(action)

@@ -5,6 +5,7 @@ import ControlPanel from '../components/ControlPanel'
 import InfoCard from '../components/InfoCard'
 import AlertBanner from '../components/AlertBanner'
 import { getLogs } from '../services/api'
+import { POLL_INTERVAL_MS } from '../config'
 
 export default function Dashboard() {
   const { vehicleData, vehicleStatus, trail, isLoading, lastUpdated, refresh } =
@@ -17,10 +18,7 @@ export default function Dashboard() {
       try {
         const logsData = await getLogs()
         const alertLogs = (logsData || []).filter(
-          (log) =>
-            log.type === 'alert' ||
-            log.type === 'danger' ||
-            log.type === 'warning'
+          (log) => log.type === 'alert'
         )
         setAlerts(alertLogs.slice(0, 10))
       } catch {
@@ -28,7 +26,7 @@ export default function Dashboard() {
       }
     }
     fetchAlerts()
-    const interval = setInterval(fetchAlerts, 5000)
+    const interval = setInterval(fetchAlerts, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [])
 

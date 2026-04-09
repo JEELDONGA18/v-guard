@@ -55,7 +55,7 @@ export default function CTASection() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <motion.button
               id="cta-goto-dashboard"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/login')}
               className="group relative px-10 py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl shadow-xl shadow-blue-500/25 overflow-hidden"
               whileHover={{ scale: 1.05, boxShadow: '0 0 40px rgba(59,130,246,0.4)' }}
               whileTap={{ scale: 0.98 }}

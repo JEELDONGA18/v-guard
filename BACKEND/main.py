@@ -24,9 +24,17 @@ async def lifespan(app: FastAPI):
     """
     # ——— Startup ———
     print("=" * 50)
-    print("  V-Guard Backend Starting...")
+    print("[STARTUP] Initializing database...")
+    print("[STARTUP] Starting simulator...")
+    print("[STARTUP] Server ready at http://localhost:8000")
+
     print("=" * 50)
-    init_db()
+    try:
+        init_db()
+        print("[DB] Connected successfully")
+    except Exception as e:
+        print(f"[DB ERROR] {e}")    
+        
     simulator.start()
     yield
     # ——— Shutdown ———

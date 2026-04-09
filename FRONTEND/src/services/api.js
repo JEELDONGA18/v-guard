@@ -10,12 +10,19 @@ const api = axios.create({
   },
 })
 
+/** Read the current userId from localStorage */
+function getUserId() {
+  return localStorage.getItem('userId') || 'vguardUser'
+}
+
 // ——— Vehicle Data ———
 
 /** Fetch the latest vehicle GPS data */
 export async function getVehicleData() {
   try {
-    const response = await api.get('/vehicle/data')
+    const response = await api.get('/vehicle/data', {
+      params: { userId: getUserId() },
+    })
     return response.data
   } catch (error) {
     console.error('Failed to fetch vehicle data:', error.message)
@@ -26,7 +33,10 @@ export async function getVehicleData() {
 /** Send GPS data (used by ESP32 or simulator) */
 export async function postVehicleData(data) {
   try {
-    const response = await api.post('/vehicle/data', data)
+    const response = await api.post('/vehicle/data', {
+      ...data,
+      userId: getUserId(),
+    })
     return response.data
   } catch (error) {
     console.error('Failed to post vehicle data:', error.message)
@@ -39,7 +49,10 @@ export async function postVehicleData(data) {
 /** Send a control command: LOCK or UNLOCK */
 export async function sendControl(action) {
   try {
-    const response = await api.post('/vehicle/control', { action })
+    const response = await api.post('/vehicle/control', {
+      action,
+      userId: getUserId(),
+    })
     return response.data
   } catch (error) {
     console.error('Failed to send control command:', error.message)
@@ -50,7 +63,9 @@ export async function sendControl(action) {
 /** Get current vehicle status (lock state, engine state) */
 export async function getVehicleStatus() {
   try {
-    const response = await api.get('/vehicle/status')
+    const response = await api.get('/vehicle/status', {
+      params: { userId: getUserId() },
+    })
     return response.data
   } catch (error) {
     console.error('Failed to fetch vehicle status:', error.message)
@@ -63,7 +78,9 @@ export async function getVehicleStatus() {
 /** Fetch all logs */
 export async function getLogs() {
   try {
-    const response = await api.get('/logs')
+    const response = await api.get('/logs', {
+      params: { userId: getUserId() },
+    })
     return response.data
   } catch (error) {
     console.error('Failed to fetch logs:', error.message)
@@ -74,7 +91,10 @@ export async function getLogs() {
 /** Add a manual log entry */
 export async function postLog(logEntry) {
   try {
-    const response = await api.post('/logs', logEntry)
+    const response = await api.post('/logs', {
+      ...logEntry,
+      userId: getUserId(),
+    })
     return response.data
   } catch (error) {
     console.error('Failed to post log:', error.message)
@@ -83,3 +103,4 @@ export async function postLog(logEntry) {
 }
 
 export default api
+

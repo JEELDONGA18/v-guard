@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import { useVehicleData } from '../hooks/useVehicleData'
+import { POLL_INTERVAL_MS } from '../config'
 
 const pageTitles = {
   '/dashboard': 'Dashboard',
@@ -16,12 +17,12 @@ export default function MainLayout() {
   const location = useLocation()
 
   // Global vehicle data — shared across pages via Outlet context
-  const vehicleState = useVehicleData(2000)
+  const vehicleState = useVehicleData(POLL_INTERVAL_MS)
   const { vehicleStatus, lastUpdated, error } = vehicleState
 
   const currentPage = pageTitles[location.pathname] || 'V-Guard'
-  const isLocked = vehicleStatus?.lockState === 'LOCKED'
-  const engineOn = vehicleStatus?.engineState === 'ON'
+  const isLocked = vehicleStatus?.lock === 'LOCKED'
+  const engineOn = vehicleStatus?.engine === 'ON'
 
   const formatTime = (date) => {
     if (!date) return '—'

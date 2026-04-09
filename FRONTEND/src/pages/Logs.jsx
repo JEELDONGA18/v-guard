@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import LogList from '../components/LogList'
 import { getLogs } from '../services/api'
+import { POLL_INTERVAL_MS } from '../config'
 
 export default function Logs() {
   const [logs, setLogs] = useState([])
@@ -22,7 +23,7 @@ export default function Logs() {
 
   useEffect(() => {
     fetchLogs()
-    const interval = setInterval(fetchLogs, 5000)
+    const interval = setInterval(fetchLogs, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [])
 
@@ -30,9 +31,7 @@ export default function Logs() {
     { value: 'all', label: 'All Logs' },
     { value: 'info', label: 'Info' },
     { value: 'alert', label: 'Alerts' },
-    { value: 'warning', label: 'Warnings' },
     { value: 'control', label: 'Control' },
-    { value: 'success', label: 'Success' },
   ]
 
   const filteredLogs =

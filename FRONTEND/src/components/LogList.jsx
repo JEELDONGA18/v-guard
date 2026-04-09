@@ -18,12 +18,7 @@ export default function LogList({
   const getTypeBadge = (type) => {
     switch (type?.toLowerCase()) {
       case 'alert':
-      case 'danger':
         return 'bg-red-500/15 text-red-400 border-red-500/20'
-      case 'warning':
-        return 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20'
-      case 'success':
-        return 'bg-green-500/15 text-green-400 border-green-500/20'
       case 'control':
         return 'bg-purple-500/15 text-purple-400 border-purple-500/20'
       default:
@@ -99,14 +94,21 @@ export default function LogList({
               className="flex items-start gap-3 py-3 px-4 rounded-xl bg-white/5 border border-vg-border/20 hover:bg-white/8 transition-colors duration-200 animate-fade-in"
               style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
             >
-              {/* Type Badge */}
-              <span
-                className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border flex-shrink-0 mt-0.5 ${getTypeBadge(
-                  log.type
-                )}`}
-              >
-                {log.type || 'info'}
-              </span>
+              {/* Type Badge + Event Code */}
+              <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                <span
+                  className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${getTypeBadge(
+                    log.type
+                  )}`}
+                >
+                  {log.type || 'info'}
+                </span>
+                {log.eventCode && (
+                  <span className="text-[10px] font-mono text-vg-text-muted bg-white/5 px-1.5 py-0.5 rounded border border-vg-border/20">
+                    {log.eventCode}
+                  </span>
+                )}
+              </div>
 
               {/* Message */}
               <div className="flex-1 min-w-0">

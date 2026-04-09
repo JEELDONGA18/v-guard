@@ -1,14 +1,23 @@
 """
-Vehicle API routes — GPS data ingestion, retrieval, and control.
+Vehicle API routes — GPS data ingestion, retrieval, control, and theft detection.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from datetime import datetime, timezone
+from typing import Optional
 
-from database.connection import vehicle_data_collection, vehicle_status_collection, logs_collection
+from database.connection import (
+    vehicle_data_collection,
+    vehicle_status_collection,
+    logs_collection,
+    trim_vehicle_data,
+)
 from schemas.vehicle import VehicleDataIn, VehicleDataOut, VehicleControlIn, VehicleStatusOut
 
 router = APIRouter(prefix="/vehicle", tags=["Vehicle"])
+
+# ——— Theft detection threshold ———
+THEFT_SPEED_THRESHOLD = 5.0  # km/h — movement above this while locked triggers alert
 
 
 # ——— POST /vehicle/data ———
@@ -16,15 +25,51 @@ router = APIRouter(prefix="/vehicle", tags=["Vehicle"])
 async def post_vehicle_data(data: VehicleDataIn):
     """
     Store GPS data from the ESP32 module or simulator.
+    Also performs theft detection: if vehicle is LOCKED and speed > threshold,
+    generates a THEFT_DETECTED alert and kills the engine.
     """
     try:
+        user_id = data.userId or "vguardUser"
+        now = datetime.now(timezone.utc)
+
         doc = {
+            "userId": user_id,
             "latitude": data.latitude,
             "longitude": data.longitude,
             "speed": data.speed,
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": now,
         }
         result = vehicle_data_collection.insert_one(doc)
+
+        # ——— Theft Detection ———
+        if data.speed > THEFT_SPEED_THRESHOLD:
+            status = vehicle_status_collection.find_one(
+                {"userId": user_id},
+                projection={"_id": 0, "lock": 1}
+            )
+            if status and status.get("lock") == "LOCKED":
+                # Insert theft alert log
+                logs_collection.insert_one({
+                    "userId": user_id,
+                    "eventCode": "THEFT_DETECTED",
+                    "message": f"Unauthorized movement detected — speed {data.speed:.1f} km/h while vehicle is LOCKED",
+                    "type": "alert",
+                    "timestamp": now,
+                })
+
+                # Kill engine for safety
+                vehicle_status_collection.update_one(
+                    {"userId": user_id},
+                    {"$set": {
+                        "engine": "OFF",
+                        "lastUpdated": now,
+                    }},
+                )
+                print(f"[THEFT] Alert triggered for {user_id} — speed {data.speed:.1f} km/h while LOCKED")
+
+        # ——— Data Limiting ———
+        trim_vehicle_data(user_id)
+
         return {"status": "ok", "id": str(result.inserted_id)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -32,19 +77,19 @@ async def post_vehicle_data(data: VehicleDataIn):
 
 # ——— GET /vehicle/data ———
 @router.get("/data", response_model=VehicleDataOut)
-async def get_vehicle_data():
+async def get_vehicle_data(userId: Optional[str] = Query(default="vguardUser")):
     """
-    Return the latest vehicle GPS data.
+    Return the latest vehicle GPS data for a given user.
     """
     try:
         doc = vehicle_data_collection.find_one(
+            filter={"userId": userId},
             sort=[("timestamp", -1)],
-            projection={"_id": 0}
+            projection={"_id": 0, "userId": 0}
         )
         if not doc:
             return VehicleDataOut(latitude=23.0225, longitude=72.5714, speed=0.0, timestamp=None)
 
-        # Convert datetime to string for JSON
         doc["timestamp"] = doc["timestamp"].isoformat() if doc.get("timestamp") else None
         return VehicleDataOut(**doc)
     except Exception as e:
@@ -55,36 +100,41 @@ async def get_vehicle_data():
 @router.post("/control", response_model=dict)
 async def post_vehicle_control(cmd: VehicleControlIn):
     """
-    Lock or unlock the vehicle. Updates status and creates a log entry.
+    Lock or unlock the vehicle. Updates status and creates a log entry
+    with the appropriate eventCode.
     """
     try:
+        user_id = cmd.userId or "vguardUser"
         action = cmd.action  # "LOCK" or "UNLOCK"
+        now = datetime.now(timezone.utc)
 
-        # Update vehicle status
-        new_lock_state = "LOCKED" if action == "LOCK" else "UNLOCKED"
-        new_engine_state = "OFF" if action == "LOCK" else "ON"
+        new_lock = "LOCKED" if action == "LOCK" else "UNLOCKED"
+        new_engine = "OFF" if action == "LOCK" else "ON"
+        event_code = "ENGINE_LOCKED" if action == "LOCK" else "ENGINE_UNLOCKED"
 
         vehicle_status_collection.update_one(
-            {},
+            {"userId": user_id},
             {"$set": {
-                "lockState": new_lock_state,
-                "engineState": new_engine_state,
+                "userId": user_id,
+                "lock": new_lock,
+                "engine": new_engine,
+                "lastUpdated": now,
             }},
             upsert=True,
         )
 
-        # Create a log entry
-        log_entry = {
+        logs_collection.insert_one({
+            "userId": user_id,
+            "eventCode": event_code,
             "message": f"Vehicle {action}ED by user",
             "type": "control",
-            "timestamp": datetime.now(timezone.utc),
-        }
-        logs_collection.insert_one(log_entry)
+            "timestamp": now,
+        })
 
         return {
             "status": "ok",
-            "lockState": new_lock_state,
-            "engineState": new_engine_state,
+            "lock": new_lock,
+            "engine": new_engine,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -92,14 +142,25 @@ async def post_vehicle_control(cmd: VehicleControlIn):
 
 # ——— GET /vehicle/status ———
 @router.get("/status", response_model=VehicleStatusOut)
-async def get_vehicle_status():
+async def get_vehicle_status(userId: Optional[str] = Query(default="vguardUser")):
     """
-    Return current vehicle lock and engine state.
+    Return current vehicle lock and engine state for a given user.
     """
     try:
-        doc = vehicle_status_collection.find_one(projection={"_id": 0})
+        doc = vehicle_status_collection.find_one(
+            filter={"userId": userId},
+            projection={"_id": 0, "userId": 0}
+        )
         if not doc:
-            return VehicleStatusOut(lockState="UNLOCKED", engineState="ON")
-        return VehicleStatusOut(**doc)
+            return VehicleStatusOut(lock="UNLOCKED", engine="ON", lastUpdated=None)
+
+        if doc.get("lastUpdated"):
+            doc["lastUpdated"] = doc["lastUpdated"].isoformat()
+
+        return VehicleStatusOut(
+            lock=doc.get("lock", "UNLOCKED"),
+            engine=doc.get("engine", "ON"),
+            lastUpdated=doc.get("lastUpdated"),
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

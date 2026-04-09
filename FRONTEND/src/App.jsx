@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import MainLayout from './layouts/MainLayout'
+import ProtectedRoute from './components/ProtectedRoute'
 import Landing from './pages/Landing'
+import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import LiveTracking from './pages/LiveTracking'
 import Alerts from './pages/Alerts'
@@ -11,11 +13,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Landing Page */}
+        {/* Public Routes */}
         <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
 
-        {/* Dashboard Routes */}
-        <Route element={<MainLayout />}>
+        {/* Protected Dashboard Routes */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tracking" element={<LiveTracking />} />
           <Route path="/alerts" element={<Alerts />} />
@@ -26,3 +35,4 @@ export default function App() {
     </BrowserRouter>
   )
 }
+
